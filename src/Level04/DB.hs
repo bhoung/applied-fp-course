@@ -35,25 +35,17 @@ import           Level04.Types                      (Comment, CommentText,
 --
 -- To help with that, we create a new data type that can hold our `Connection`
 -- for us, and allows it to be expanded later if we need to
-data FirstAppDB = FirstAppDB
-  { dbConn :: Connection
-  }
+data FirstAppDB = FirstAppDB { dbConn :: Connection }
 
 -- Quick helper to pull the connection and close it down.
-closeDB
-  :: FirstAppDB
-  -> IO ()
-closeDB =
-  error "closeDB not implemented"
+closeDB :: FirstAppDB -> IO ()
+closeDB = error "closeDB not implemented"
 
 -- Given a `FilePath` to our SQLite DB file, initialise the database and ensure
 -- our Table is there by running a query to create it, if it doesn't exist
 -- already.
-initDB
-  :: FilePath
-  -> IO ( Either SQLiteResponse FirstAppDB )
-initDB fp =
-  error "initDB not implemented"
+initDB :: FilePath -> IO ( Either SQLiteResponse FirstAppDB )
+initDB fp = error "initDB not implemented"
   where
   -- Query has an `IsString` instance so string literals like this can be
   -- converted into a `Query` type when the `OverloadedStrings` language
@@ -70,10 +62,7 @@ initDB fp =
 --
 -- HINT: You can use '?' or named place-holders as query parameters. Have a look
 -- at the section on parameter substitution in sqlite-simple's documentation.
-getComments
-  :: FirstAppDB
-  -> Topic
-  -> IO (Either Error [Comment])
+getComments :: FirstAppDB -> Topic -> IO (Either Error [Comment])
 getComments =
   let
     sql = "SELECT id,topic,comment,time FROM comments WHERE topic = ?"
@@ -84,32 +73,14 @@ getComments =
   in
     error "getComments not implemented"
 
-addCommentToTopic
-  :: FirstAppDB
-  -> Topic
-  -> CommentText
-  -> IO (Either Error ())
-addCommentToTopic =
-  let
-    sql = "INSERT INTO comments (topic,comment,time) VALUES (?,?,?)"
-  in
-    error "addCommentToTopic not implemented"
+addCommentToTopic :: FirstAppDB -> Topic -> CommentText -> IO (Either Error ())
+addCommentToTopic = let sql = "INSERT INTO comments (topic,comment,time) VALUES (?,?,?)"
+  in error "addCommentToTopic not implemented"
 
-getTopics
-  :: FirstAppDB
-  -> IO (Either Error [Topic])
-getTopics =
-  let
-    sql = "SELECT DISTINCT topic FROM comments"
-  in
-    error "getTopics not implemented"
+getTopics :: FirstAppDB -> IO (Either Error [Topic])
+getTopics = let sql = "SELECT DISTINCT topic FROM comments"
+  in error "getTopics not implemented"
 
-deleteTopic
-  :: FirstAppDB
-  -> Topic
-  -> IO (Either Error ())
-deleteTopic =
-  let
-    sql = "DELETE FROM comments WHERE topic = ?"
-  in
-    error "deleteTopic not implemented"
+deleteTopic :: FirstAppDB -> Topic -> IO (Either Error ())
+deleteTopic = let sql = "DELETE FROM comments WHERE topic = ?"
+  in error "deleteTopic not implemented"

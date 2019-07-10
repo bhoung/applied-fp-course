@@ -16,17 +16,11 @@ import           Level04.Types.Error        (Error (EmptyTopic), nonEmptyText)
 newtype Topic = Topic Text
   deriving Show
 
-mkTopic
-  :: Text
-  -> Either Error Topic
-mkTopic =
-  nonEmptyText Topic EmptyTopic
+mkTopic :: Text -> Either Error Topic
+mkTopic = nonEmptyText Topic EmptyTopic
 
-getTopic
-  :: Topic
-  -> Text
-getTopic (Topic t) =
-  t
+getTopic :: Topic -> Text
+getTopic (Topic t) = t
 
 -- | We will use this function to describe how we would like our `Topic`
 -- type to be encoded into JSON.
@@ -60,5 +54,9 @@ getTopic (Topic t) =
 -- for this level.
 --
 encodeTopic :: Applicative f => Encoder f Topic
-encodeTopic = -- Try using 'contramap' and 'E.text'
-  error "topic JSON encoder not implemented"
+encodeTopic = contramap getTopic E.text
+-- (a -> b) is getTopic :: Topic -> Text
+-- E.text is the encoder for text (f b)
+-- (f a) is the Topic i.e. the encoder for Topic
+--
+-- Try using 'contramap' and 'E.text'

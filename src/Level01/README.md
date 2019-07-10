@@ -28,7 +28,7 @@ $ stack exec level01-exe
 
 ```bash
 # Using curl
-$ curl -XGET localhost:<port number>
+$ curl -XGET localhost:<port number> -v
 ```
 
 You can also use a browser and go to ``http://localhost:<port number>``.
