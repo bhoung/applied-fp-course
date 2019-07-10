@@ -1,0 +1,4 @@
+--ghcid -c 'cabal new-repl applied-fp-course' --height=20
+
+ghcid -c 'cabal new-repl applied-fp-course' 
+
