@@ -1,5 +1,0 @@
-newtype Topic = Topic Text
-
-left is constructor, right is data 
-
-no runtime cost

@@ -66,20 +66,19 @@ data Comment = Comment
 -- 'https://hackage.haskell.org/package/waargonaut/docs/Waargonaut-Encode.html'
 --
 encodeComment :: Applicative f => Encoder f Comment
-encodeComment = E.mapLikeObj $ \c ->
-  E.atKey' "commentId" E.text (_commentId c) . 
-  E.atKey' "commentTopic" E.text (_commentTopic c) . 
-  E.atKey' "commentBody" E.text (_commentBody c) . 
-  E.atKey' "commentTime" encodeISO8601DateTime (_commentTime c) 
-
+encodeComment =
+  error "Comment JSON encoder not implemented"
   -- Tip: Use the 'encodeISO8601DateTime' to handle the UTCTime for us.
 
 -- | For safety we take our stored `DBComment` and try to construct a `Comment`
 -- that we would be okay with showing someone. However unlikely it may be, this
 -- is a nice method for separating out the back and front end of a web app and
 -- providing greater guarantees about data cleanliness.
-fromDBComment :: DBComment -> Either Error Comment
-fromDBComment db = Right $ Comment (commentId db) (commentTopic db) (commentBody db) (commentTime db)
+fromDBComment
+  :: DBComment
+  -> Either Error Comment
+fromDBComment =
+  error "fromDBComment not yet implemented"
 
 data RqType
   = AddRq Topic CommentText
@@ -90,7 +89,9 @@ data ContentType
   = PlainText
   | JSON
 
-renderContentType :: ContentType -> ByteString
+renderContentType
+  :: ContentType
+  -> ByteString
 renderContentType PlainText = "text/plain"
 renderContentType JSON      = "application/json"
 

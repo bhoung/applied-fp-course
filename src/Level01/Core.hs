@@ -28,8 +28,12 @@ import           Network.HTTP.Types       (status200)
 -- what you need.
 --
 -- We've used the non-synonym version of the `Application` type below.
-app :: Request -> (Response -> IO ResponseReceived) -> IO ResponseReceived
-app _ cb = cb $ responseLBS status200 [] "Hello World"
+app
+  :: Request
+  -> (Response -> IO ResponseReceived)
+  -> IO ResponseReceived
+app _ cb =
+  error "Application not implemented"
 
 -- We keep this main function here as it is useful to build your application as
 -- a library. The reasoning behind this is that when you come to do your
@@ -37,4 +41,4 @@ app _ cb = cb $ responseLBS status200 [] "Hello World"
 -- needing to worry about any initialisation code you've buried in your
 -- executable Main.hs.
 runApp :: IO ()
-runApp = run 80 app
+runApp = run undefined undefined
