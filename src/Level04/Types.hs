@@ -14,6 +14,8 @@ module Level04.Types
   , getCommentText
   , renderContentType
   , fromDBComment
+  , encodeComment
+  , encodeTopic
   ) where
 
 import           GHC.Generics               (Generic)
@@ -75,6 +77,9 @@ encodeComment = E.mapLikeObj $ \c ->
   E.atKey' "commentTime" encodeISO8601DateTime (commentTime c) 
   -- Tip: Use the 'encodeISO8601DateTime' to handle the UTCTime for us.
 
+encodeTopic :: Applicative f => Encoder f Topic
+encodeTopic = E.mapLikeObj $ \t ->
+  E.atKey' "commentTopic" E.text (getTopic t)  
 -- | For safety we take our stored `DBComment` and try to construct a `Comment`
 -- that we would be okay with showing someone. However unlikely it may be, this
 -- is a nice method for separating out the back and front end of a web app and

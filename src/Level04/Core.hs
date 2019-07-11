@@ -8,6 +8,7 @@ module Level04.Core
 import           Control.Applicative                (liftA2)
 import           Control.Monad                      (join)
 
+import           Data.Bifunctor                     (first)
 import           Network.Wai                        (Application, Request,
                                                      Response, pathInfo,
                                                      requestMethod, responseLBS,
@@ -39,7 +40,7 @@ import           Level04.Types                      (ContentType (JSON, PlainTex
                                                      Error (..),
                                                      RqType (AddRq, ListRq, ViewRq),
                                                      mkCommentText, mkTopic,
-                                                     renderContentType)
+                                                     renderContentType, encodeComment, encodeTopic)
 
 -- Our start-up is becoming more complicated and could fail in new and
 -- interesting ways. But we also want to be able to capture these errors in a
@@ -49,7 +50,12 @@ data StartUpError
   deriving Show
 
 runApp :: IO ()
-runApp = error "runApp needs re-implementing"
+runApp = do
+  ap <- prepareAppReqs 
+  case ap of 
+    Left _ -> print "can't initialise error" 
+    Right a -> run 8081 (app a)
+
 
 -- We need to complete the following steps to prepare our app requirements:
 --
@@ -59,7 +65,10 @@ runApp = error "runApp needs re-implementing"
 -- Our application configuration is defined in Conf.hs
 --
 prepareAppReqs :: IO ( Either StartUpError DB.FirstAppDB )
-prepareAppReqs = error "prepareAppReqs not implemented"
+prepareAppReqs = do
+          x <- DB.initDB "app.db"
+          let y = first DBInitErr x
+          pure y
 
 -- | Some helper functions to make our lives a little more DRY.
 mkResponse :: Status -> ContentType -> LBS.ByteString -> Response
@@ -68,39 +77,21 @@ mkResponse sts ct = responseLBS sts [(hContentType, renderContentType ct)]
 resp200 :: ContentType -> LBS.ByteString -> Response
 resp200 = mkResponse status200
 
-resp404
-  :: ContentType
-  -> LBS.ByteString
-  -> Response
-resp404 =
-  mkResponse status404
+resp404 :: ContentType -> LBS.ByteString -> Response
+resp404 = mkResponse status404
 
-resp400
-  :: ContentType
-  -> LBS.ByteString
-  -> Response
-resp400 =
-  mkResponse status400
+resp400 :: ContentType -> LBS.ByteString -> Response
+resp400 = mkResponse status400
 
 -- Some new helpers for different statuses and content types
-resp500
-  :: ContentType
-  -> LBS.ByteString
-  -> Response
-resp500 =
-  mkResponse status500
+resp500 :: ContentType -> LBS.ByteString -> Response
+resp500 = mkResponse status500
 
-resp200Json
-  :: Encoder' a
-  -> a
-  -> Response
-resp200Json e =
-  mkResponse status200 JSON . encodeUtf8 .
-  E.simplePureEncodeTextNoSpaces e
+resp200Json :: Encoder' a -> a -> Response
+resp200Json e = mkResponse status200 JSON . encodeUtf8 . E.simplePureEncodeTextNoSpaces e
 
 -- |
-app
-  :: DB.FirstAppDB -- ^ Add the Database record to our app so we can use it
+app :: DB.FirstAppDB -- ^ Add the Database record to our app so we can use it
   -> Application
 app db rq cb = do
   rq' <- mkRequest rq
@@ -123,20 +114,12 @@ app db rq cb = do
 --
 -- For both the 'ViewRq' and 'ListRq' functions, we'll need to pass the correct 'Encoder' to the
 -- 'resp200Json' function.
-handleRequest
-  :: DB.FirstAppDB
-  -> RqType
-  -> IO (Either Error Response)
-handleRequest _db (AddRq _ _) =
-  (resp200 PlainText "Success" <$) <$> error "AddRq handler not implemented"
-handleRequest _db (ViewRq _)  =
-  error "ViewRq handler not implemented"
-handleRequest _db ListRq      =
-  error "ListRq handler not implemented"
+handleRequest :: DB.FirstAppDB -> RqType -> IO (Either Error Response)
+handleRequest db (AddRq t ct) = (resp200 PlainText "Success" <$) <$> DB.addCommentToTopic db t ct
+handleRequest db (ViewRq t)   = (resp200Json (E.list encodeComment) <$>) <$> (DB.getComments db t)
+handleRequest db ListRq       = (resp200Json (E.list encodeTopic) <$>) <$> (DB.getTopics db)
 
-mkRequest
-  :: Request
-  -> IO ( Either Error RqType )
+mkRequest :: Request -> IO ( Either Error RqType )
 mkRequest rq =
   case ( pathInfo rq, requestMethod rq ) of
     -- Commenting on a given topic
