@@ -1,11 +1,14 @@
 {-# OPTIONS_GHC -fno-warn-missing-methods #-}
-module Level04.DB.Types where
+module Level04.DB.Types 
+  ( DBComment(..)
+  )
+  where
 
 import           Data.Text                      (Text)
 import           Data.Time                      (UTCTime)
 
 import           Database.SQLite.Simple.FromRow (FromRow (fromRow), field)
-import           Level04.Types (CommentId, Topic, CommentText, UTCTime)
+--import           Level04.Types (CommentId, Topic, CommentText, UTCTime)
 
 -- To try to avoid leaking various types and expected functionality around the
 -- application, we create a stand alone type that will represent the data we
@@ -16,10 +19,10 @@ import           Level04.Types (CommentId, Topic, CommentText, UTCTime)
 -- Comment type, but without the newtype wrappers for each value. To get started,
 -- just copy the new definition for the `Comment` type from Level04.Types.
 data DBComment = DBComment
-  { dbCommentId :: CommentId
-  , dbCommentTopic :: Topic
-  , dbCommentBody :: CommentText
-  , dbCommentTime :: UTCTime
+  { dbCommentId :: Int
+  , dbCommentTopic :: Text
+  , dbCommentBody :: Text
+  , dbCommentTime :: UTCTime 
   }
   deriving Show
 

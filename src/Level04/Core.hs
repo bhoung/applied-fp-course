@@ -36,7 +36,7 @@ import qualified Waargonaut.Encode                  as E
 import           Level04.Conf                       (Conf, firstAppConfig)
 import qualified Level04.DB                         as DB
 import           Level04.Types                      (ContentType (JSON, PlainText),
-                                                     Error (EmptyCommentText, EmptyTopic, UnknownRoute),
+                                                     Error (..),
                                                      RqType (AddRq, ListRq, ViewRq),
                                                      mkCommentText, mkTopic,
                                                      renderContentType)
@@ -58,26 +58,15 @@ runApp = error "runApp needs re-implementing"
 --
 -- Our application configuration is defined in Conf.hs
 --
-prepareAppReqs
-  :: IO ( Either StartUpError DB.FirstAppDB )
-prepareAppReqs =
-  error "prepareAppReqs not implemented"
+prepareAppReqs :: IO ( Either StartUpError DB.FirstAppDB )
+prepareAppReqs = error "prepareAppReqs not implemented"
 
 -- | Some helper functions to make our lives a little more DRY.
-mkResponse
-  :: Status
-  -> ContentType
-  -> LBS.ByteString
-  -> Response
-mkResponse sts ct =
-  responseLBS sts [(hContentType, renderContentType ct)]
+mkResponse :: Status -> ContentType -> LBS.ByteString -> Response
+mkResponse sts ct = responseLBS sts [(hContentType, renderContentType ct)]
 
-resp200
-  :: ContentType
-  -> LBS.ByteString
-  -> Response
-resp200 =
-  mkResponse status200
+resp200 :: ContentType -> LBS.ByteString -> Response
+resp200 = mkResponse status200
 
 resp404
   :: ContentType
@@ -159,31 +148,18 @@ mkRequest rq =
     -- Finally we don't care about any other requests so throw your hands in the air
     _                      -> pure ( Left UnknownRoute )
 
-mkAddRequest
-  :: Text
-  -> LBS.ByteString
-  -> Either Error RqType
-mkAddRequest ti c = AddRq
-  <$> mkTopic ti
-  <*> (mkCommentText . decodeUtf8 . LBS.toStrict) c
+mkAddRequest :: Text -> LBS.ByteString -> Either Error RqType
+mkAddRequest ti c = AddRq <$> mkTopic ti <*> (mkCommentText . decodeUtf8 . LBS.toStrict) c
 
-mkViewRequest
-  :: Text
-  -> Either Error RqType
-mkViewRequest =
-  fmap ViewRq . mkTopic
+mkViewRequest :: Text -> Either Error RqType
+mkViewRequest = fmap ViewRq . mkTopic
 
-mkListRequest
-  :: Either Error RqType
-mkListRequest =
-  Right ListRq
+mkListRequest :: Either Error RqType
+mkListRequest = Right ListRq
 
-mkErrorResponse
-  :: Error
-  -> Response
-mkErrorResponse UnknownRoute =
-  resp404 PlainText "Unknown Route"
-mkErrorResponse EmptyCommentText =
-  resp400 PlainText "Empty Comment"
-mkErrorResponse EmptyTopic =
-  resp400 PlainText "Empty Topic"
+mkErrorResponse :: Error -> Response
+mkErrorResponse UnknownRoute = resp404 PlainText "Unknown Route"
+mkErrorResponse EmptyCommentText = resp400 PlainText "Empty Comment"
+mkErrorResponse EmptyTopic = resp400 PlainText "Empty Topic"
+mkErrorResponse (DBError _) = resp400 PlainText "Database Error"
+

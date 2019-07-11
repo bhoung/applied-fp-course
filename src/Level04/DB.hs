@@ -12,17 +12,20 @@ module Level04.DB
 
 import           Data.Text                          (Text)
 import qualified Data.Text                          as Text
+import           Data.Bifunctor                     (bimap, first)
 
 import           Data.Time                          (getCurrentTime)
 
-import           Database.SQLite.Simple             (Connection, Query (Query))
+import           Database.SQLite.Simple             (Connection, Query (Query), 
+                                                    close, open, execute_, query, toRow)
 import qualified Database.SQLite.Simple             as Sql
 
 import qualified Database.SQLite.SimpleErrors       as Sql
 import           Database.SQLite.SimpleErrors.Types (SQLiteResponse)
 
-import           Level04.Types                      (Comment, CommentText,
-                                                     Error, Topic)
+import           Level04.Types                      (Comment(..), CommentText, getCommentText,
+                                                     Error(..), Topic, getTopic, fromDBComment, mkTopic)
+import           Level04.DB.Types                   (DBComment(..))
 
 -- ------------------------------------------------------------------------|
 -- You'll need the documentation for sqlite-simple ready for this section! |
@@ -39,13 +42,16 @@ data FirstAppDB = FirstAppDB { dbConn :: Connection }
 
 -- Quick helper to pull the connection and close it down.
 closeDB :: FirstAppDB -> IO ()
-closeDB = error "closeDB not implemented"
+closeDB fadb = close $ dbConn fadb
 
 -- Given a `FilePath` to our SQLite DB file, initialise the database and ensure
 -- our Table is there by running a query to create it, if it doesn't exist
 -- already.
 initDB :: FilePath -> IO ( Either SQLiteResponse FirstAppDB )
-initDB fp = error "initDB not implemented"
+initDB fp = let q = Query createTableQ in 
+              Sql.runDBAction $ open fp >>= \conn -> 
+                                execute_ conn q >> 
+                                return (FirstAppDB conn)
   where
   -- Query has an `IsString` instance so string literals like this can be
   -- converted into a `Query` type when the `OverloadedStrings` language
@@ -63,24 +69,54 @@ initDB fp = error "initDB not implemented"
 -- HINT: You can use '?' or named place-holders as query parameters. Have a look
 -- at the section on parameter substitution in sqlite-simple's documentation.
 getComments :: FirstAppDB -> Topic -> IO (Either Error [Comment])
-getComments =
+getComments fadb t = 
   let
     sql = "SELECT id,topic,comment,time FROM comments WHERE topic = ?"
   -- There are several possible implementations of this function. Particularly
   -- there may be a trade-off between deciding to throw an Error if a DBComment
   -- cannot be converted to a Comment, or simply ignoring any DBComment that is
   -- not valid.
-  in
-    error "getComments not implemented"
+  --
+  in do 
+     x <- Sql.runDBAction (query (dbConn fadb) sql (Sql.Only $ getTopic t))
+     let y = first DBError x 
+     pure (y >>= \z -> traverse fromDBComment z)
+
+   -- (>>=) :: Either Error [r] -> ([r] -> Either Error b) -> Either Error b
+   --Either Error [r]
+   --
+   --pure (traverse ( y)
+
+   --where f xs = map (\x -> fromDBComment x) (Right xs)
+
+   -- f (Optional b a)
+   --IO (Either SQLITEERROR [r])
+   --either (\e -> (DBError e)) 
+   --(\y -> fromDBComment y) x 
 
 addCommentToTopic :: FirstAppDB -> Topic -> CommentText -> IO (Either Error ())
-addCommentToTopic = let sql = "INSERT INTO comments (topic,comment,time) VALUES (?,?,?)"
-  in error "addCommentToTopic not implemented"
+addCommentToTopic fadb t ct = let sql = "INSERT INTO comments (topic,comment,time) VALUES (?,?,?)"
+  in do
+  time <- getCurrentTime
+  x <- Sql.runDBAction $ Sql.execute (dbConn fadb) sql (getTopic t, getCommentText ct, time)
+  let y = first DBError x
+  pure y 
+
 
 getTopics :: FirstAppDB -> IO (Either Error [Topic])
-getTopics = let sql = "SELECT DISTINCT topic FROM comments"
-  in error "getTopics not implemented"
+getTopics fadb = 
+  let sql = "SELECT DISTINCT topic FROM comments"
+  in do
+    x <- Sql.runDBAction $ Sql.query_ (dbConn fadb) sql 
+    let y = first DBError x
+    --a <- pure 1 
+    --let a' = a + 1
+    pure (y >>= \z -> traverse (mkTopic . Sql.fromOnly) z)
 
 deleteTopic :: FirstAppDB -> Topic -> IO (Either Error ())
-deleteTopic = let sql = "DELETE FROM comments WHERE topic = ?"
-  in error "deleteTopic not implemented"
+deleteTopic fadb t = 
+  let sql = "DELETE FROM comments WHERE topic = ?"
+  in do 
+    x <- Sql.runDBAction $ Sql.execute_ (dbConn fadb) sql 
+    let y = first DBError x
+    pure (y)
