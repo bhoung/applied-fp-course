@@ -15,6 +15,7 @@ import           Data.Text              (Text)
 import           Level05.Types          (Error)
 
 import           Data.Bifunctor         (first)
+import           Control.Applicative    (liftA2)
 
 -- We're going to add a very useful abstraction to our application. We'll
 -- automate away the explicit error handling and inspection of our Either values
@@ -56,49 +57,94 @@ newtype AppM a = AppM (IO (Either Error a))
 --
 -- AppM m a = AppM ( m (Either Error a) )
 --
--- Then our functions would look like:
---
+-- Then our functions would look like: --
 -- foo :: MonadIO m => Int -> AppM m a
 --
 -- Or we could not use a concrete type for Error
 --
 -- AppM e m a = AppM ( m (Either e a) )
-
-runAppM
-  :: AppM a
-  -> IO (Either Error a)
-runAppM (AppM m) =
-  m
+-- https://downloads.haskell.org/~ghc/5.04.2/docs/html/users_guide/newtype-deriving.html
+runAppM :: AppM a -> IO (Either Error a)
+runAppM (AppM m) = m
 
 instance Functor AppM where
   fmap :: (a -> b) -> AppM a -> AppM b
-  fmap = error "fmap for AppM not implemented"
+-- equivalent answer: 
+-- fmap f (appma) = AppM $ (f <$>) <$> (runAppM appma)
+  fmap f (appma) = AppM $ (fmap . fmap) f (runAppM appma)
+-- intuition: fmap to move pass IO and pass Either
+                     --AppM $ do
+                     --x <- runAppM appma 
+                     --y <- return (f <$> x)
+                     --return y 
 
 instance Applicative AppM where
   pure :: a -> AppM a
-  pure  = error "pure for AppM not implemented"
+  pure a = AppM . pure $ pure a
 
   (<*>) :: AppM (a -> b) -> AppM a -> AppM b
-  (<*>) = error "spaceship for AppM not implemented"
+  (<*>) (AppM f) (AppM a) = AppM $ (fmap (<*>)) f <*> a
+
+  -- initial attempt: 
+  --(<*>) (AppM f) (AppM a) = AppM $ (fmap . (<*>)) _todo a 
+  -- type holes:
+  -- (<*>) (AppM f) (AppM a) = AppM $ _F <$> f <*> a 
+  -- answer:
+--  (<*>) (AppM f) (AppM a) = AppM $ (<*>) <$> f <*> a 
+  --(<*>) (AppM f) (AppM a) = AppM $ liftA2 (<*>) f a 
+  -- intuition: 
+  -- fmap brings the <*> into Either Error a level
+  -- even though (<*>) is first
+  --
+  -- (<*>) (AppM f) (AppM a) = AppM $ (<*>) <$> f <*> a
+  -- f (a -> b) -> f a -> f b
+  -- Either Error (a -> b) -> Either Error a -> Either Error b
+  --
+  -- Need second apply (<*>) to get under IO in a
+  --
+
 
 instance Monad AppM where
   return :: a -> AppM a
-  return = error "return for AppM not implemented"
+  return a = pure a
 
   (>>=) :: AppM a -> (a -> AppM b) -> AppM b
-  (>>=)  = error "bind for AppM not implemented"
-
+  (>>=) (AppM a) f = AppM $ do 
+                       b <- a
+                       case b of 
+                         Right a' -> runAppM (f a')
+                         Left e -> return $ Left e
+  -- can't bind on either, b/c it expects to return back to either, not to AppM b
+  
 instance MonadIO AppM where
   liftIO :: IO a -> AppM a
-  liftIO = error "liftIO for AppM not implemented"
+  liftIO ioa = AppM $ do
+                    a <- ioa
+                    return $ Right a
+-- answer: liftIO = AppM . fmap pure
+
+--getErrorTime :: IO (Either TimeError UTCTime)
+
+
 
 instance MonadError Error AppM where
   throwError :: Error -> AppM a
-  throwError = error "throwError for AppM not implemented"
+  throwError e = AppM $ do 
+                   return $ Left e 
 
   catchError :: AppM a -> (Error -> AppM a) -> AppM a
-  catchError = error "catchError for AppM not implemented"
-
+  catchError (AppM a) f = AppM $ do
+                               b <- a 
+                               case b of 
+                                 Left e -> runAppM (f e)
+                                 Right _ -> a
+-- answer:
+-- catchError appma f = AppM $ runAppM appma >>= 
+--   either (runAppM . f) (pure . pure)
+--
+--
+--
+--
 -- This is a helper function that will `lift` an Either value into our new AppM
 -- by applying `throwError` to the Left value, and using `pure` to lift the
 -- Right value into the AppM.
@@ -106,10 +152,9 @@ instance MonadError Error AppM where
 -- throwError :: MonadError e m => e -> m a
 -- pure :: Applicative m => a -> m a
 --
-liftEither
-  :: Either Error a
-  -> AppM a
-liftEither =
-  error "liftEither not implemented"
+liftEither :: Either Error a -> AppM a
+liftEither eea = case eea of
+                   Left e -> throwError e
+                   Right a -> pure a
 
 -- Go to 'src/Level05/DB.hs' next.
