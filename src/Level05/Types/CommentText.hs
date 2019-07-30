@@ -20,14 +20,8 @@ newtype CommentText = CommentText Text
 encodeCommentText :: Applicative f => Encoder f CommentText
 encodeCommentText = getCommentText >$< E.text
 
-mkCommentText
-  :: Text
-  -> Either Error CommentText
-mkCommentText =
-  nonEmptyText CommentText EmptyCommentText
+mkCommentText :: Text -> Either Error CommentText
+mkCommentText = nonEmptyText CommentText EmptyCommentText
 
-getCommentText
-  :: CommentText
-  -> Text
-getCommentText (CommentText t) =
-  t
+getCommentText :: CommentText -> Text
+getCommentText (CommentText t) = t

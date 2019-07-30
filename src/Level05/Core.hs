@@ -35,6 +35,7 @@ import qualified Waargonaut.Encode                  as E
 import           Database.SQLite.SimpleErrors.Types (SQLiteResponse)
 
 import           Level05.AppM                       (AppM, liftEither, runAppM)
+                                                    
 import qualified Level05.Conf                       as Conf
 import qualified Level05.DB                         as DB
 import           Level05.Types                      (ContentType (..),
@@ -64,7 +65,7 @@ runApp = do
       -- application. This function 'finally' will execute the first 'IO a', and then, even in the
       -- case of that value throwing an exception, execute the second 'IO b'. We do this to ensure
       -- that our DB connection will always be closed when the application finishes, or crashes.
-      Ex.finally (run 80 (app cfg)) (DB.closeDB cfg)
+      Ex.finally (run 8081 (app cfg)) (DB.closeDB cfg)
 
 -- We need to complete the following steps to prepare our app requirements:
 --
@@ -95,6 +96,7 @@ resp404 = mkResponse status404
 resp400 :: ContentType -> LBS.ByteString -> Response
 resp400 = mkResponse status400
 
+
 resp500 :: ContentType -> LBS.ByteString -> Response
 resp500 = mkResponse status500
 
@@ -107,8 +109,38 @@ resp200Json e =
 
 -- How has this implementation changed, now that we have an AppM to handle the
 -- errors for our application? Could it be simplified? Can it be changed at all?
+-- app :: Request -> (Response -> IO ResponseReceived) -> IO ResponseReceived
 app :: DB.FirstAppDB -> Application
-app db rq cb = error "app not reimplemented"
+app db rq cb = do
+  let resp = request2Resp rq db
+  resp' <- handleRespErr <$> (runAppM $ resp)
+  cb $ resp'
+  where
+    handleRespErr :: Either Error Response -> Response
+    handleRespErr = either mkErrorResponse id
+   
+request2Resp :: Request -> DB.FirstAppDB -> AppM Response
+request2Resp rq db = do
+    rq' <- mkRequest rq
+    resp <- handleRequest db rq' 
+    return $ resp
+    
+--
+--rq' <- runAppM $ mkRequest rq
+--resp <- (handleRespErr <$> handleRErr) rq'
+--cb resp
+--where 
+--    handleRespErr :: Either Error Response -> Response
+--    handleRespErr = either mkErrorResponse id
+--
+--    handleRErr :: Either Error RqType -> IO (Either Error Response)
+--    handleRErr = either (pure . Left) (handleRequest db)
+--
+--mkRequest :: Request -> AppM RqType
+--mkErrorResponse :: Error -> Response
+--handleRequest :: DB.FirstAppDB -> RqType -> AppM Response
+--
+
 
 handleRequest :: DB.FirstAppDB -> RqType -> AppM Response
 handleRequest db rqType = case rqType of

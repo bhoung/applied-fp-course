@@ -121,8 +121,8 @@ instance MonadIO AppM where
   liftIO ioa = AppM $ do
                     a <- ioa
                     return $ Right a
--- answer: liftIO = AppM . fmap pure
 
+-- answer: liftIO = AppM . fmap pure
 --getErrorTime :: IO (Either TimeError UTCTime)
 
 
